@@ -38,7 +38,7 @@ We will use a CloudFormation template to create an API Gateway deployment and La
 
 Lastly, we will deploy a static website to Amazon S3 to complete the front end for this application.  This application was built using the Facebook create-react-app library.  The code for the application can be found [here]().  However, we are only going to deploy the compiled version (webpack'd version) of the application in the sake of time.  Complete the following steps to complete this deployment:
 
-1. Download the website content files from the link here: [Graph Front-End Content]()
+1. Download the website content files from the link here: [Graph Front-End Content](https://github.com/triggan/neptune-workshop-ui/blob/master/website.zip)
 2. Create an S3 bucket in the EU Frankfurt region (eu-central-1).  (Be sure to use a globally unique name.)
 3. Configure this bucket to host a static S3 website.
 a. Open the bucket settings by clicking on the bucket name in the S3 console.
