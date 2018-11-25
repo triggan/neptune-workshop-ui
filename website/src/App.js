@@ -6,40 +6,8 @@ import Paper from '@material-ui/core/Paper';
 import ReactJson from 'react-json-view';
 import './App.css';
 
-
-/*
-function async_get(url, callback) {
-  var xmlhttp = new XMLHttpRequest();
-  xmlhttp.onreadystatechange = function() {
-      if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-          console.log('responseText:' + xmlhttp.responseText);
-          try {
-              var data = JSON.parse(xmlhttp.responseText);
-          } catch(err) {
-              console.log(err.message + " in " + xmlhttp.responseText);
-              return;
-          }
-          callback(data);
-      }
-  };
-  xmlhttp.open("GET", url, true);
-  xmlhttp.send();
-} //end function async_get
-
-var currentS3path = window.location.hostname
-console.log(currentS3path)
-var url = "https://" + currentS3path + "/api.json"
-//var url = "https://s3.eu-central-1.amazonaws.com/neptunewsdtr/api.json"
-console.log(url)
-
-var apiResponse = ""
-async_get(url, function(response) {
-  apiResponse = JSON.parse(response.responseText);
-});
-
-console.log(apiResponse);
-*/
-
+//------ The following section is used to pull configuration variables from an
+//------ external json file post npm build.
 var currentS3path = window.location.hostname;
 console.log(currentS3path);
 var url = "http://" + currentS3path + "/api.json";
@@ -66,7 +34,7 @@ fetch(url)
     console.log('Fetch Error :-S', err);
   });
 
-
+// ------ Begin of React Component used for the primary application
 class App extends Component {
 
   constructor(props) {
