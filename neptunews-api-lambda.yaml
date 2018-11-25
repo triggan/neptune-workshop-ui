@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create the API and Lambda Function to retrieve movie recommendations.
+
+Parameters:
+  workshopNeptuneDB:
+    Description: Neptune Database Endpoint
+    Type: String
+  workshopVPC:
+    Description: VPC Hosting Neptune Instnace
+    Type: AWS::EC2::VPC::Id
+  workshopSubnetIDs:
+    Description: Subnet IDs
+    Type: List<AWS::EC2::Subnet::Id>
+
+Resources:
+# --------- DEFINING API GATEWAY RESOURCES ---------
+  workshopAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Join ["-", [ "neptuneworkshop", !Ref "AWS::StackName"]]
+      Description: API Gateway for re:Invent 2018 Neptune Workshop - sample graph application.
+  
+  workshopAPIProd:
+    DependsOn: [ workshopMethod ]
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: workshopAPI
+      StageName: Prod
+
+# ---------- DEFINING LAMBDA FUNCTION TO ACCESS NEPTUNE ----------
+  workshopLambdaRoleCloudWatch:
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Effect: Allow
+          Resource: arn:aws:logs:::*
+        Version: '2012-10-17'
+      PolicyName: workshopLambdaRoleCloudWatch
+      Roles:
+      - Ref: workshopLambdaRole
+    Type: AWS::IAM::Policy
+  workshopLambdaRoleEC2:
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - ec2:CreateNetworkInterface
+          - ec2:DescribeNetworkInterfaces
+          - ec2:DeleteNetworkInterface
+          - ec2:DetachNetworkInterface
+          Effect: Allow
+          Resource: "*"
+        Version: '2012-10-17'
+      PolicyName: workshopLambdaRoleEC2
+      Roles:
+      - Ref: workshopLambdaRole
+    Type: AWS::IAM::Policy
+  workshopLambdaRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+        Version: '2012-10-17'
+      Path: /
+    Type: AWS::IAM::Role
+  workshopLambda:
+    Type: AWS::Lambda::Function  
+    Properties:
+      Code:
+        S3Bucket: "cloudwreck-neptunews-content"
+        S3Key: "artifacts/workshoplambda.zip"
+      Description: 'API to collect recommendations from Neptune.'
+      Environment:
+        Variables:
+          neptunedb:
+            Ref:  workshopNeptuneDB
+      Handler: lambda_function.lambda_handler
+      MemorySize: 128
+      Role: 
+        Fn::GetAtt:
+        - workshopLambdaRole
+        - Arn
+      Runtime: python3.6
+      Timeout: 30
+      VpcConfig:
+        SecurityGroupIds:
+        - Ref: workshopSecGroup
+        SubnetIds:
+          Ref:  workshopSubnetIDs
+
+  workshopSecGroup:
+    Properties:
+      GroupDescription: Security group for Lambda function to reach Neptune.
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        FromPort: 8182
+        IpProtocol: tcp
+        ToPort: 8182
+      VpcId:
+        Ref:  workshopVPC
+    Type: AWS::EC2::SecurityGroup
+
+  workshopApi1PermissionProd:
+    DependsOn: workshopMethod
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:invokeFunction
+      FunctionName:
+        Ref: workshopLambda
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub:
+        - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${__ApiId__}/*/GET/actor
+        - __ApiId__:
+            Ref:  workshopAPI
+    
+  workshopResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: 
+        Fn::GetAtt: 
+          - workshopAPI
+          - RootResourceId
+      PathPart: actor
+      RestApiId: 
+        Ref: workshopAPI
+
+  workshopMethod:
+    DependsOn: workshopResource
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: 
+        Ref: workshopAPI 
+      ResourceId: 
+        Ref: workshopResource
+      RequestParameters:
+        method.request.querystring.actor: True
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${workshopLambda.Arn}/invocations
+        IntegrationResponses:
+          - StatusCode: 200
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty

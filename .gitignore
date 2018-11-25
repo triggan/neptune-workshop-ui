@@ -10,6 +10,8 @@
 
 # production
 /build
+/website
+/s3website
 
 # misc
 .DS_Store
