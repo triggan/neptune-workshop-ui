@@ -28,10 +28,19 @@ Each of these will be used as inputs or configurables when we launch the CloudFo
 
 ### Deploy API Gateway and Lambda Function
 
-We will use a CloudFormation template to create an API Gateway deployment and Lambda function to query our Neptune graph database.  Click on the link below to deploy the template.  Be sure to deploy the template into the same region used in the earlier portions of the workshop (eu-central-1).
+We will use a CloudFormation template to create an API Gateway deployment and Lambda function to query our Neptune graph database.  Click on the link below to deploy the template.  Be sure to deploy the template into the same region used in the earlier portions of the workshop.
 
-1. Click on the following link to deploy the CloudFormation template:  [Graph App Backend](https://eu-central-1.console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/create/review?templateURL=https://s3.eu-central-1.amazonaws.com/cloudwreck-neptunews-content/artifacts/neptunews-api-lambda.yaml)
-2. Use the a-e configurables from above to fill out the parameters to deploy the stack.  NOTE:  All three subnets will go in the same field, just select all three that were previously used.
+1. Click on the following link to deploy the CloudFormation template:
+
+| Region | Launch CloudFormation Template |
+|---|---|
+| eu-west-1 (Ireland) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/create/review?templateURL=https://s3-eu-west-1.amazonaws.com/cloudwreck-neptunews-content-eu-west-1/neptunews-api-lambda.yaml) |
+| eu-west-2 (London) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-west-2.console.aws.amazon.com/cloudformation/home?region=eu-west-2#/stacks/create/review?templateURL=https://s3.eu-west-2.amazonaws.com/cloudwreck-neptunews-content-eu-west-2/neptunews-api-lambda.yaml) |
+| eu-central-1 (Frankfurt) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-central-1.console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/create/review?templateURL=https://s3.eu-central-1.amazonaws.com/cloudwreck-neptunews-content/artifacts/neptunews-api-lambda.yaml) |
+
+
+  
+2. Use the **a** - **e** configurables from above to fill out the parameters to deploy the stack.  NOTE:  All three subnets will go in the same field, just select all three that were previously used.
 3. After the stack has deployed, click on the Resources tab at the bottom half of the CloudFormation console (while highlighting the row associated with your new API Gateway/Lambda stack).  Find the Resource called workshopAPI.  Note the value next to this resource (to be used in next section).
 
 ### Create a Static Website
@@ -39,7 +48,7 @@ We will use a CloudFormation template to create an API Gateway deployment and La
 Lastly, we will deploy a static website to Amazon S3 to complete the front end for this application.  This application was built using the Facebook create-react-app library.  The code for the application can be found [here](https://github.com/triggan/neptune-workshop-ui/tree/master/website).  However, we are only going to deploy the compiled version (webpack'd version) of the application in the sake of time.  Complete the following steps to complete this deployment:
 
 1. Download the website content files from the link here: [Graph Front-End Content](https://github.com/triggan/neptune-workshop-ui/blob/master/website.zip)
-2. Create an S3 bucket in the EU Frankfurt region (eu-central-1).  (Be sure to use a globally unique name.)
+2. Create an S3 bucket in the same region containing your Neptune cluster.  (Be sure to use a globally unique name.)
 3. Configure this bucket to host a static S3 website.
 a. Open the bucket settings by clicking on the bucket name in the S3 console.
 b. Click on the Properties tab.
@@ -58,7 +67,7 @@ d. Click on the Save button on the right hand side of the page.
 7. Open the api.json file with a text editor.
 8. In the section where you should enter your API Gateway URL, enter a URL in the following format (using the API Gateway ID that was noted in the previous section):
 ```
-Example:  API Gateway ID of qrqz67ab15
+Example:  API Gateway ID of qrqz67ab15 deployed in eu-central-1
 
 Be sure your api.json file looks like:
 {
