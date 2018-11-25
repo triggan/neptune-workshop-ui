@@ -9,8 +9,9 @@
 /coverage
 
 # production
-/build
-/s3website
+/website/build
+/s3website/
+/website/node_modules
 
 # misc
 .DS_Store
