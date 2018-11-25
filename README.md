@@ -5,7 +5,7 @@
 
 The following guide takes you through deploying a static website that leverages an API to make graph traversals against a graph hosted in an Amazon Neptune cluster.  This portion of the workshop will leverage S3 as the store for the static web content.  It will also use API Gateway and Lambda to create an API to query Neptune.  The Lambda function will reside in the same VPC as the Amazon Neptune cluster, allowing the Gremlin client within Lambda to access the graph.
 
-## Prep Work
+## Deployment
 
 This web application will be deployed in high level tasks:
 - Collecting some configurables from the previously deployed CloudFormation templates used in the earlier portions of the workshop.
