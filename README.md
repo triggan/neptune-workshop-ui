@@ -70,11 +70,11 @@ Be sure your api.json file looks like:
 11. Using the S3 website URL noted in step 3f, browse to this URL.  You should see your new application.
 12. Attempt to enter actors such as 'Jack Nicholson', 'Tom Cruise', or 'Robert Dinero' in the actor field.  You should see both the graph travrersal that is being used and the results of the traversal (An array of paths from this particular actor to Kevin Bacon in the form of actor->movie->actor->(movie->actor) ).
 
-##Review
+## Review
 
 In review, we deployed a new API Gateway and Lambda function that has direct access to the graph database hosted in Amazon Neptune.  We also deployed a React.js web front-end that leverages this API Gateway and Lambda.
 
-##Next Steps
+## Next Steps
 
 Attempt to use the example here to build new functionality into this application or other use cases.  Many applciations may have dozens of API calls with many different Lambda functions with different graph traversals in each Lambda function.  You can also use Lambda to load data into the graph database using g.addV(), g.addE(), or g.V().property() traversals.
 
