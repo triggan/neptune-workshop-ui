@@ -34,14 +34,30 @@ We will use a CloudFormation template to create an API Gateway deployment and La
 
 | Region | Launch CloudFormation Template |
 |---|---|
-| eu-west-1 (Ireland) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/create/review?templateURL=https://s3-eu-west-1.amazonaws.com/cloudwreck-neptunews-content-eu-west-1/neptunews-api-lambda.yaml) |
-| eu-west-2 (London) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-west-2.console.aws.amazon.com/cloudformation/home?region=eu-west-2#/stacks/create/review?templateURL=https://s3.eu-west-2.amazonaws.com/cloudwreck-neptunews-content-eu-west-2/neptunews-api-lambda.yaml) |
-| eu-central-1 (Frankfurt) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-central-1.console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/create/review?templateURL=https://s3.eu-central-1.amazonaws.com/cloudwreck-neptunews-content/artifacts/neptunews-api-lambda.yaml) |
+| eu-west-1 (Ireland) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/create/review?templateURL=https://s3-eu-west-1.amazonaws.com/cloudwreck-neptunews-content-eu-west-1/artifacts/neptunews-api-lambda.yaml) |
+| eu-west-2 (London) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-west-2.console.aws.amazon.com/cloudformation/home?region=eu-west-2#/stacks/create/review?templateURL=https://s3.eu-west-2.amazonaws.com/cloudwreck-neptunews-content-eu-west-2/artifacts/neptunews-api-lambda.yaml) |
+| eu-central-1 (Frankfurt) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-central-1.console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/create/review?templateURL=https://s3.eu-central-1.amazonaws.com/cloudwreck-neptunews-content-eu-central-1/artifacts/neptunews-api-lambda.yaml) |
 
 
   
-2. Use the **a** - **e** configurables from above to fill out the parameters to deploy the stack.  NOTE:  All three subnets will go in the same field, just select all three that were previously used.
-3. After the stack has deployed, click on the Resources tab at the bottom half of the CloudFormation console (while highlighting the row associated with your new API Gateway/Lambda stack).  Find the Resource called workshopAPI.  Note the value next to this resource (to be used in next section).
+2. Use the **a** - **e** configurables from above to fill out the parameters to deploy the stack.  NOTE:  All three subnets will go in the same field, just select all three that were previously used. 
+3. After the stack has deployed, click on the Resources tab at the bottom half of the CloudFormation console (while highlighting the row associated with your new API Gateway/Lambda stack).  Note the values next to each of the following resources:
+a. workshopAPI
+b. workshopSecGroup
+4. Before moving on to the next stage, we need to give the Lambda function access to our Neptune cluster.  We will do this by adding a rule to the Neptune cluster's Security Group to allow traffic on port 8182 from the Security Group associated with the Lambda function.  Browse to the appropriate Security Group console based on your region:
+
+| Region |
+| --- | ---|
+| [eu-west-1 (Ireland)](https://eu-west-1.console.aws.amazon.com/ec2/v2/home?region=eu-west-1#SecurityGroups:sort=groupId) |
+| [eu-west-2 (London)](https://eu-west-2.console.aws.amazon.com/ec2/v2/home?region=eu-west-2#SecurityGroups:sort=groupId) |
+| [eu-central-1 (Frankfurt)](https://eu-west-2.console.aws.amazon.com/ec2/v2/home?region=eu-west-2#SecurityGroups:sort=groupId) |
+
+5. In the Security Group console, find the security group associated with the Neptune cluster.  You noted this in step **3f** from the previous section.  Highlight the row associated with this security group.
+6. At the bottom of the screen, click on the Inbound tab and click the Edit button.  An 'Edit Inbound Rules' dialog should appear.  Click Add Rule.  
+a. Leave the Type as the default of **Custom TCP**.  
+b. For Port Range, enter **8182**
+c. For the Source, enter the Security Group ID that was deployed with the Lambda function.  You gathered this in step **3b**.
+d. Click Save to add this rule.
 
 ### Create a Static Website
 

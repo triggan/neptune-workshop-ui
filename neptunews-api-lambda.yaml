@@ -76,7 +76,7 @@ Resources:
     Type: AWS::Lambda::Function  
     Properties:
       Code:
-        S3Bucket: "cloudwreck-neptunews-content"
+        S3Bucket: !Join ["-", [ "cloudwreck-neptunews-content", !Ref "AWS::Region"]]
         S3Key: "artifacts/workshoplambda.zip"
       Description: 'API to collect recommendations from Neptune.'
       Environment:
