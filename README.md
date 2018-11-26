@@ -47,7 +47,7 @@ b. workshopSecGroup
 4. Before moving on to the next stage, we need to give the Lambda function access to our Neptune cluster.  We will do this by adding a rule to the Neptune cluster's Security Group to allow traffic on port 8182 from the Security Group associated with the Lambda function.  Browse to the appropriate Security Group console based on your region:
 
 | Region |
-| --- | ---|
+| --- |
 | [eu-west-1 (Ireland)](https://eu-west-1.console.aws.amazon.com/ec2/v2/home?region=eu-west-1#SecurityGroups:sort=groupId) |
 | [eu-west-2 (London)](https://eu-west-2.console.aws.amazon.com/ec2/v2/home?region=eu-west-2#SecurityGroups:sort=groupId) |
 | [eu-central-1 (Frankfurt)](https://eu-west-2.console.aws.amazon.com/ec2/v2/home?region=eu-west-2#SecurityGroups:sort=groupId) |
