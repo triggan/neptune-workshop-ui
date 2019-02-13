@@ -34,6 +34,8 @@ We will use a CloudFormation template to create an API Gateway deployment and La
 
 | Region | Launch CloudFormation Template |
 |---|---|
+| us-east-2 (Ohio) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/create/review?templateURL=https://s3-us-east-2.amazonaws.com/cloudwreck-neptunews-content-us-east-2/artifacts/neptunews-api-lambda.yaml) |
+| us-west-2 (Oregon) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://s3-us-west-2.amazonaws.com/cloudwreck-neptunews-content-us-west-2/artifacts/neptunews-api-lambda.yaml) |
 | eu-west-1 (Ireland) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/create/review?templateURL=https://s3-eu-west-1.amazonaws.com/cloudwreck-neptunews-content-eu-west-1/artifacts/neptunews-api-lambda.yaml) |
 | eu-west-2 (London) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-west-2.console.aws.amazon.com/cloudformation/home?region=eu-west-2#/stacks/create/review?templateURL=https://s3.eu-west-2.amazonaws.com/cloudwreck-neptunews-content-eu-west-2/artifacts/neptunews-api-lambda.yaml) |
 | eu-central-1 (Frankfurt) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-central-1.console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/create/review?templateURL=https://s3.eu-central-1.amazonaws.com/cloudwreck-neptunews-content-eu-central-1/artifacts/neptunews-api-lambda.yaml) |
@@ -48,6 +50,8 @@ b. workshopSecGroup
 
 | Region |
 | --- |
+| [us-east-2 (Ohio)](https://us-east-2.console.aws.amazon.com/ec2/v2/home?region=us-east-2#SecurityGroups:sort=groupId) |
+| [us-west-2 (Oregon)](https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#SecurityGroups:sort=groupId) |
 | [eu-west-1 (Ireland)](https://eu-west-1.console.aws.amazon.com/ec2/v2/home?region=eu-west-1#SecurityGroups:sort=groupId) |
 | [eu-west-2 (London)](https://eu-west-2.console.aws.amazon.com/ec2/v2/home?region=eu-west-2#SecurityGroups:sort=groupId) |
 | [eu-central-1 (Frankfurt)](https://eu-west-2.console.aws.amazon.com/ec2/v2/home?region=eu-west-2#SecurityGroups:sort=groupId) |
