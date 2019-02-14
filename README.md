@@ -18,12 +18,12 @@ Before we proceed with launching the API Gateway and Lambda function used to que
 
 1.  While logged into the same AWS account used in the earlier portions of the workshop, browse to the CloudFormation Console.  Find the Launched CloudFormation Template that includes "NeptuneBaseStack" in its name.
 2. Highlight the row associated with the "NeptuneBaseStack" deployment.  Then click on the Outputs tab at the bottom half of the screen.  Find the following resources and note their values (copy and paste into a text doc):
-a.  VPC
-b.  DBClusterEndpoint
-c.  PublicSubnet1
-d.  PublicSubnet2
-e.  PublicSubnet3
-f.  NeptuneSG
+    1.  VPC
+    2.  DBClusterEndpoint
+    3.  PublicSubnet1
+    4.  PublicSubnet2
+    5.  PublicSubnet3
+    6.  NeptuneSG
 Each of these will be used as inputs or configurables when we launch the CloudFormation stack to deploy an API Gateway and Lambda function.
 
 ### Deploy API Gateway and Lambda Function
@@ -42,10 +42,11 @@ We will use a CloudFormation template to create an API Gateway deployment and La
 
 
   
-2. Use the **a** - **e** configurables from above to fill out the parameters to deploy the stack.  NOTE:  All three subnets will go in the same field, just select all three that were previously used. 
+2. Use the data collected in Step 2 of the Data Collection section from above to fill out the parameters to deploy the stack.  
+    -  NOTE:  All three subnets will go in the same field, just select all three that were previously used. 
 3. After the stack has deployed, click on the Resources tab at the bottom half of the CloudFormation console (while highlighting the row associated with your new API Gateway/Lambda stack).  Note the values next to each of the following resources:
-a. workshopAPI
-b. workshopSecGroup
+    1. workshopAPI
+    2. workshopSecGroup
 4. Before moving on to the next stage, we need to give the Lambda function access to our Neptune cluster.  We will do this by adding a rule to the Neptune cluster's Security Group to allow traffic on port 8182 from the Security Group associated with the Lambda function.  Browse to the appropriate Security Group console based on your region:
 
 | Region |
@@ -58,10 +59,10 @@ b. workshopSecGroup
 
 5. In the Security Group console, find the security group associated with the Neptune cluster.  You noted this in step **3f** from the previous section.  Highlight the row associated with this security group.
 6. At the bottom of the screen, click on the Inbound tab and click the Edit button.  An 'Edit Inbound Rules' dialog should appear.  Click Add Rule.  
-a. Leave the Type as the default of **Custom TCP**.  
-b. For Port Range, enter **8182**
-c. For the Source, enter the Security Group ID that was deployed with the Lambda function.  You gathered this in step **3b**.
-d. Click Save to add this rule.
+    1. Leave the Type as the default of **Custom TCP**.  
+    2. For Port Range, enter **8182**
+    3. For the Source, enter the Security Group ID that was deployed with the Lambda function.  You gathered this in step **3b**.
+    4. Click Save to add this rule.
 
 ### Create a Static Website
 
@@ -70,18 +71,18 @@ Lastly, we will deploy a static website to Amazon S3 to complete the front end f
 1. Download the website content files from the link here: [Graph Front-End Content](https://github.com/triggan/neptune-workshop-ui/blob/master/website.zip)
 2. Create an S3 bucket in the same region containing your Neptune cluster.  (Be sure to use a globally unique name.)
 3. Configure this bucket to host a static S3 website.
-a. Open the bucket settings by clicking on the bucket name in the S3 console.
-b. Click on the Properties tab.
-c. Click on the Static Website Hosting settings.
-d. Choose to 'Use this bucket to host a website.'
-e. In the Index Document field, type 'index.html'
-f. Note the S3 website URL at the top of the dialog box (save this for later.)
-g. Click Save
+    1. Open the bucket settings by clicking on the bucket name in the S3 console.
+    2. Click on the Properties tab.
+    3. Click on the Static Website Hosting settings.
+    4. Choose to 'Use this bucket to host a website.'
+    5. In the Index Document field, type 'index.html'
+    6. Note the S3 website URL at the top of the dialog box (save this for later.)
+    7. Click Save
 4. As of a few weeks ago, AWS has added some additional features to make sure customers are aware when they are making an S3 bucket (or its content) available via public access.  We'll need to turn off these settings before we can make the content of this bucket public.
-a. In the S3 console for your S3 bucket, click on the Permissions tab.  
-b. The first section that should load will be the Public Access Settings.  Click on the Edit link on the right side of the page.  
-c. Under the 'Manage public access control lists (ACLs) for this bucket' settings, remove the check boxes for both 'Block new public ACLs and uploading public objects' and 'Remove public access granted through public ACLs'.
-d. Click on the Save button on the right hand side of the page.
+    1. In the S3 console for your S3 bucket, click on the Permissions tab.  
+    2. The first section that should load will be the Public Access Settings.  Click on the Edit link on the right side of the page.  
+    3. Under the 'Manage public access control lists (ACLs) for this bucket' settings, remove the check boxes for both 'Block new public ACLs and uploading public objects' and 'Remove public access granted through public ACLs'.
+    4. Click on the Save button on the right hand side of the page.
 5. Unzip the content from the zip file that you downloaded in step 1.  
 6. Find the file called api.json from the unzipped files.
 7. Open the api.json file with a text editor.
