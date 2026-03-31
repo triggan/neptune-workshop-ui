@@ -1,112 +1,129 @@
-
 # Create a Web Front-End for Your Graph Application
 
 ## Description
 
-The following guide takes you through deploying a static website that leverages an API to make graph traversals against a graph hosted in an Amazon Neptune cluster.  This portion of the workshop will leverage S3 as the store for the static web content.  It will also use API Gateway and Lambda to create an API to query Neptune.  The Lambda function will reside in the same VPC as the Amazon Neptune cluster, allowing the Gremlin client within Lambda to access the graph.  The figure below shows the simplicity of this architecture:
+This guide walks you through deploying a static website that leverages an API to make graph traversals against a graph hosted in an Amazon Neptune cluster.  The architecture uses:
+
+- **API Gateway + Lambda** to query Neptune via the Gremlin client
+- **CloudFront + private S3 bucket** to serve the React front-end securely using Origin Access Control (OAC)
+- **SAM CLI** for local development and deployment
+
+The Lambda function resides in the same VPC as the Neptune cluster, giving the Gremlin client direct access to the graph.
 
 ![Graph Web App](./images/graphwebapp.png)
 
-## Deployment
+## Prerequisites
 
-This web application will be deployed in high level tasks:
-- Collecting some configurables from the previously deployed CloudFormation templates used in the earlier portions of the workshop.
-- Deploying the API Gateway and Lambda function using a CloudFormation template.
-- Launching a React.js based application hosted on S3 that uses the backend API to query Neptune.
+- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+- [Node.js](https://nodejs.org/)
+- [GNU Make](https://www.gnu.org/software/make/)
+- A deployed Neptune cluster using the [Neptune CloudFormation stack](https://docs.aws.amazon.com/neptune/latest/userguide/get-started-cfn-create.html) from the earlier portions of the workshop
 
-### Data Collection - Previous CloudFormation Templates
+## Data Collection
 
-Before we proceed with launching the API Gateway and Lambda function used to query Neptune, we need to collect some information regarding the existing configuration.  Follow these steps:
+Before deploying, collect the following values from the existing "NeptuneBaseStack" CloudFormation stack outputs:
 
-1.  While logged into the same AWS account used in the earlier portions of the workshop, browse to the CloudFormation Console.  Find the Launched CloudFormation Template that includes "NeptuneBaseStack" in its name.
-2. Highlight the row associated with the "NeptuneBaseStack" deployment.  Then click on the Outputs tab at the bottom half of the screen.  Find the following resources and note their values (copy and paste into a text doc):
-    1.  VPC
-    2.  DBClusterEndpoint
-    3.  PublicSubnet1
-    4.  PublicSubnet2
-    5.  PublicSubnet3
-    6.  NeptuneSG
-Each of these will be used as inputs or configurables when we launch the CloudFormation stack to deploy an API Gateway and Lambda function.
+1. **VPC** — The VPC ID
+2. **DBClusterEndpoint** — The Neptune cluster endpoint
+3. **PublicSubnet1, PublicSubnet2, PublicSubnet3** — The three subnet IDs
+4. **NeptuneSG** — The Neptune security group ID
 
-### Deploy API Gateway and Lambda Function
+## Local Development
 
-We will use a CloudFormation template to create an API Gateway deployment and Lambda function to query our Neptune graph database.  Click on the link below to deploy the template.  Be sure to deploy the template into the same region used in the earlier portions of the workshop.
+### Initial Setup
 
-1. Click on the following link to deploy the CloudFormation template:
+Copy the example configuration files and fill in your values:
 
-| Region | Launch CloudFormation Template |
+```bash
+cp env.json.example env.json
+cp website/public/api.json.example website/public/api.json
+```
+
+Edit `env.json` and set your Neptune cluster endpoint.  The `api.json` file defaults to `http://localhost:3001` and should not need changes for local development.  Both files are gitignored to prevent leaking environment-specific values.
+
+### Running Locally
+
+Start both the SAM local API and the React dev server together:
+
+```bash
+make local-dev
+```
+
+This runs the SAM local API on port 3001 and the React dev server on port 3000.  Browse to `http://localhost:3000` to use the application.
+
+Note that the Lambda function needs to reach your Neptune cluster, so local invocations will only work if your machine has connectivity to the Neptune endpoint.  If your cluster has [public endpoints enabled](https://docs.aws.amazon.com/neptune/latest/userguide/neptune-public-endpoints.html), local development will work without any additional networking setup.  Otherwise, you will need VPN or similar connectivity to the VPC.
+
+Your local AWS credentials must also have `neptune-db:ReadDataViaQuery` permission on the cluster for IAM-authenticated requests.
+
+You can also run the pieces individually:
+
+```bash
+# SAM local API only
+make local-api
+
+# React dev server only
+cd website && npm install && npm start
+```
+
+## Deploying to AWS
+
+### 1. Deploy the stack
+
+This deploys the Lambda function, API Gateway, S3 bucket, and CloudFront distribution in a single CloudFormation stack:
+
+```bash
+make deploy STACK_NAME=neptune-workshop
+```
+
+On first run, SAM will prompt for the parameter values collected above:
+- **workshopNeptuneDB**: The DBClusterEndpoint value
+- **workshopVPC**: The VPC ID
+- **workshopSubnetIDs**: All three subnet IDs (comma-separated)
+
+Subsequent deploys will reuse the saved configuration in `samconfig.toml`.
+
+### 2. Allow Lambda to access Neptune
+
+Add an inbound rule to the Neptune security group (NeptuneSG) to allow traffic from the Lambda function's security group:
+
+1. In the EC2 console, navigate to Security Groups and find the Neptune security group.
+2. Edit inbound rules and add:
+    - **Type**: Custom TCP
+    - **Port Range**: 8182
+    - **Source**: The `workshopSecGroup` value from the stack outputs
+
+### 3. Deploy the website content
+
+This builds the React app, writes the API Gateway URL into `api.json` automatically, and syncs the build output to S3:
+
+```bash
+make sync STACK_NAME=neptune-workshop
+```
+
+Or do everything in one step:
+
+```bash
+make all STACK_NAME=neptune-workshop
+```
+
+The CloudFront URL will be printed at the end.
+
+### Makefile Targets
+
+| Target | Description |
 |---|---|
-| us-east-2 (Ohio) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/create/review?templateURL=https://s3-us-east-2.amazonaws.com/cloudwreck-neptunews-content-us-east-2/artifacts/neptunews-api-lambda.yaml) |
-| us-west-2 (Oregon) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://s3-us-west-2.amazonaws.com/cloudwreck-neptunews-content-us-west-2/artifacts/neptunews-api-lambda.yaml) |
-| eu-west-1 (Ireland) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/create/review?templateURL=https://s3-eu-west-1.amazonaws.com/cloudwreck-neptunews-content-eu-west-1/artifacts/neptunews-api-lambda.yaml) |
-| eu-west-2 (London) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-west-2.console.aws.amazon.com/cloudformation/home?region=eu-west-2#/stacks/create/review?templateURL=https://s3.eu-west-2.amazonaws.com/cloudwreck-neptunews-content-eu-west-2/artifacts/neptunews-api-lambda.yaml) |
-| eu-central-1 (Frankfurt) | [![CloudFormation](./images/cloudformation-launch-stack-button.png)](https://eu-central-1.console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/create/review?templateURL=https://s3.eu-central-1.amazonaws.com/cloudwreck-neptunews-content-eu-central-1/artifacts/neptunews-api-lambda.yaml) |
+| `make build` | Build Lambda (SAM) and React front-end |
+| `make deploy` | Build and deploy the CloudFormation stack |
+| `make sync` | Write api.json and sync website to S3 |
+| `make all` | Full deploy: infrastructure + website content |
+| `make local-api` | Start a local API Gateway for development |
+| `make local-dev` | Start both SAM local API and React dev server |
+| `make clean` | Remove build artifacts |
 
+## Testing the Application
 
-  
-2. Use the data collected in Step 2 of the Data Collection section from above to fill out the parameters to deploy the stack.  
-    -  NOTE:  All three subnets will go in the same field, just select all three that were previously used. 
-3. After the stack has deployed, click on the Resources tab at the bottom half of the CloudFormation console (while highlighting the row associated with your new API Gateway/Lambda stack).  Note the values next to each of the following resources:
-    1. workshopAPI
-    2. workshopSecGroup
-4. Before moving on to the next stage, we need to give the Lambda function access to our Neptune cluster.  We will do this by adding a rule to the Neptune cluster's Security Group to allow traffic on port 8182 from the Security Group associated with the Lambda function.  Browse to the appropriate Security Group console based on your region:
-
-| Region |
-| --- |
-| [us-east-2 (Ohio)](https://us-east-2.console.aws.amazon.com/ec2/v2/home?region=us-east-2#SecurityGroups:sort=groupId) |
-| [us-west-2 (Oregon)](https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#SecurityGroups:sort=groupId) |
-| [eu-west-1 (Ireland)](https://eu-west-1.console.aws.amazon.com/ec2/v2/home?region=eu-west-1#SecurityGroups:sort=groupId) |
-| [eu-west-2 (London)](https://eu-west-2.console.aws.amazon.com/ec2/v2/home?region=eu-west-2#SecurityGroups:sort=groupId) |
-| [eu-central-1 (Frankfurt)](https://eu-west-2.console.aws.amazon.com/ec2/v2/home?region=eu-west-2#SecurityGroups:sort=groupId) |
-
-5. In the Security Group console, find the security group associated with the Neptune cluster.  You noted this in step **3f** from the previous section.  Highlight the row associated with this security group.
-6. At the bottom of the screen, click on the Inbound tab and click the Edit button.  An 'Edit Inbound Rules' dialog should appear.  Click Add Rule.  
-    1. Leave the Type as the default of **Custom TCP**.  
-    2. For Port Range, enter **8182**
-    3. For the Source, enter the Security Group ID that was deployed with the Lambda function.  You gathered this in step **3b**.
-    4. Click Save to add this rule.
-
-### Create a Static Website
-
-Lastly, we will deploy a static website to Amazon S3 to complete the front end for this application.  This application was built using the Facebook create-react-app library.  The code for the application can be found [here](https://github.com/triggan/neptune-workshop-ui/tree/master/website).  However, we are only going to deploy the compiled version (webpack'd version) of the application in the sake of time.  Complete the following steps to complete this deployment:
-
-1. Download the website content files from the link here: [Graph Front-End Content](https://github.com/triggan/neptune-workshop-ui/blob/master/website.zip)
-2. Create an S3 bucket in the same region containing your Neptune cluster.  (Be sure to use a globally unique name.)
-3. Configure this bucket to host a static S3 website.
-    1. Open the bucket settings by clicking on the bucket name in the S3 console.
-    2. Click on the Properties tab.
-    3. Click on the Static Website Hosting settings.
-    4. Choose to 'Use this bucket to host a website.'
-    5. In the Index Document field, type 'index.html'
-    6. Note the S3 website URL at the top of the dialog box (save this for later.)
-    7. Click Save
-4. As of a few weeks ago, AWS has added some additional features to make sure customers are aware when they are making an S3 bucket (or its content) available via public access.  We'll need to turn off these settings before we can make the content of this bucket public.
-    1. In the S3 console for your S3 bucket, click on the Permissions tab.  
-    2. The first section that should load will be the Public Access Settings.  Click on the Edit link on the right side of the page.  
-    3. Under the 'Manage public access control lists (ACLs) for this bucket' settings, remove the check boxes for both 'Block new public ACLs and uploading public objects' and 'Remove public access granted through public ACLs'.
-    4. Click on the Save button on the right hand side of the page.
-5. Unzip the content from the zip file that you downloaded in step 1.  
-6. Find the file called api.json from the unzipped files.
-7. Open the api.json file with a text editor.
-8. In the section where you should enter your API Gateway URL, enter a URL in the following format (using the API Gateway ID that was noted in the previous section):
-```
-Example:  API Gateway ID of qrqz67ab15 deployed in eu-central-1
-
-Be sure your api.json file looks like:
-{
-    "APIPATH": "http://qrqz67ab15.execute-api.eu-central-1.amazonaws.com/Prod"
-}
-```
-9. Save the changes to this file.
-10. Upload the entire contents from the zip file to your S3 bucket.  Either during the upload or after upload, mark all of the objects to be publically readable.
-11. Using the S3 website URL noted in step 3f, browse to this URL.  You should see your new application.
-12. Attempt to enter actors such as 'Jack Nicholson', 'Tom Cruise', or 'Robert Dinero' in the actor field.  You should see both the graph travrersal that is being used and the results of the traversal (An array of paths from this particular actor to Kevin Bacon in the form of actor->movie->actor->(movie->actor) ).
-
-## Review
-
-In review, we deployed a new API Gateway and Lambda function that has direct access to the graph database hosted in Amazon Neptune.  We also deployed a React.js web front-end that leverages this API Gateway and Lambda.
+Browse to the CloudFront URL from the stack outputs and try entering actors such as 'Jack Nicholson', 'Tom Cruise', or 'Robert De Niro' in the actor field.  You should see both the graph traversal being used and the results (an array of paths from the actor to Kevin Bacon).
 
 ## Next Steps
 
-Attempt to use the example here to build new functionality into this application or other use cases.  Many applciations may have dozens of API calls with many different Lambda functions with different graph traversals in each Lambda function.  You can also use Lambda to load data into the graph database using g.addV(), g.addE(), or g.V().property() traversals.
-
+Use the example here to build new functionality into this application or other use cases.  Many applications may have dozens of API calls with many different Lambda functions with different graph traversals in each Lambda function.  You can also use Lambda to load data into the graph database using g.addV(), g.addE(), or g.V().property() traversals.

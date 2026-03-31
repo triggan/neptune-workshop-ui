@@ -1,149 +1,51 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Create the API and Lambda Function to retrieve movie recommendations.
+Transform: 'AWS::Serverless-2016-10-31'
+Description: Neptune Workshop - API Gateway, Lambda, CloudFront, and S3 static website.
 
 Parameters:
   workshopNeptuneDB:
     Description: Neptune Database Endpoint
     Type: String
   workshopVPC:
-    Description: VPC Hosting Neptune Instnace
+    Description: VPC Hosting Neptune Instance
     Type: AWS::EC2::VPC::Id
   workshopSubnetIDs:
     Description: Subnet IDs
     Type: List<AWS::EC2::Subnet::Id>
+  workshopNeptuneClusterResourceId:
+    Description: Neptune Cluster Resource ID (e.g. cluster-ABCDEFGHIJKLMN) for IAM policy
+    Type: String
 
 Resources:
-# --------- DEFINING API GATEWAY RESOURCES ---------
+# --------- API GATEWAY ---------
   workshopAPI:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: !Join ["-", [ "neptuneworkshop", !Ref "AWS::StackName"]]
-      Description: API Gateway for re:Invent 2018 Neptune Workshop - sample graph application.
-  
+      Name: !Sub "neptuneworkshop-${AWS::StackName}"
+      Description: API Gateway for Neptune Workshop graph application.
+
   workshopAPIProd:
-    DependsOn: [ workshopMethod ]
+    DependsOn: workshopMethod
     Type: AWS::ApiGateway::Deployment
     Properties:
-      RestApiId:
-        Ref: workshopAPI
+      RestApiId: !Ref workshopAPI
       StageName: Prod
 
-# ---------- DEFINING LAMBDA FUNCTION TO ACCESS NEPTUNE ----------
-  workshopLambdaRoleCloudWatch:
-    Properties:
-      PolicyDocument:
-        Statement:
-        - Action:
-          - logs:CreateLogGroup
-          - logs:CreateLogStream
-          - logs:PutLogEvents
-          Effect: Allow
-          Resource: arn:aws:logs:::*
-        Version: '2012-10-17'
-      PolicyName: workshopLambdaRoleCloudWatch
-      Roles:
-      - Ref: workshopLambdaRole
-    Type: AWS::IAM::Policy
-  workshopLambdaRoleEC2:
-    Properties:
-      PolicyDocument:
-        Statement:
-        - Action:
-          - ec2:CreateNetworkInterface
-          - ec2:DescribeNetworkInterfaces
-          - ec2:DeleteNetworkInterface
-          - ec2:DetachNetworkInterface
-          Effect: Allow
-          Resource: "*"
-        Version: '2012-10-17'
-      PolicyName: workshopLambdaRoleEC2
-      Roles:
-      - Ref: workshopLambdaRole
-    Type: AWS::IAM::Policy
-  workshopLambdaRole:
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Action: sts:AssumeRole
-          Effect: Allow
-          Principal:
-            Service:
-            - lambda.amazonaws.com
-        Version: '2012-10-17'
-      Path: /
-    Type: AWS::IAM::Role
-  workshopLambda:
-    Type: AWS::Lambda::Function  
-    Properties:
-      Code:
-        S3Bucket: !Join ["-", [ "cloudwreck-neptunews-content", !Ref "AWS::Region"]]
-        S3Key: "artifacts/workshoplambda.zip"
-      Description: 'API to collect recommendations from Neptune.'
-      Environment:
-        Variables:
-          neptunedb:
-            Ref:  workshopNeptuneDB
-      Handler: lambda_function.lambda_handler
-      MemorySize: 128
-      Role: 
-        Fn::GetAtt:
-        - workshopLambdaRole
-        - Arn
-      Runtime: python3.6
-      Timeout: 30
-      VpcConfig:
-        SecurityGroupIds:
-        - Ref: workshopSecGroup
-        SubnetIds:
-          Ref:  workshopSubnetIDs
-
-  workshopSecGroup:
-    Properties:
-      GroupDescription: Security group for Lambda function to reach Neptune.
-      SecurityGroupIngress:
-      - CidrIp: 0.0.0.0/0
-        FromPort: 8182
-        IpProtocol: tcp
-        ToPort: 8182
-      VpcId:
-        Ref:  workshopVPC
-    Type: AWS::EC2::SecurityGroup
-
-  workshopApi1PermissionProd:
-    DependsOn: workshopMethod
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:invokeFunction
-      FunctionName:
-        Ref: workshopLambda
-      Principal: apigateway.amazonaws.com
-      SourceArn:
-        Fn::Sub:
-        - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${__ApiId__}/*/GET/actor
-        - __ApiId__:
-            Ref:  workshopAPI
-    
   workshopResource:
     Type: AWS::ApiGateway::Resource
     Properties:
-      ParentId: 
-        Fn::GetAtt: 
-          - workshopAPI
-          - RootResourceId
+      ParentId: !GetAtt workshopAPI.RootResourceId
       PathPart: actor
-      RestApiId: 
-        Ref: workshopAPI
+      RestApiId: !Ref workshopAPI
 
   workshopMethod:
     DependsOn: workshopResource
     Type: AWS::ApiGateway::Method
     Properties:
-      RestApiId: 
-        Ref: workshopAPI 
-      ResourceId: 
-        Ref: workshopResource
+      RestApiId: !Ref workshopAPI
+      ResourceId: !Ref workshopResource
       RequestParameters:
-        method.request.querystring.actor: True
+        method.request.querystring.actor: true
       HttpMethod: GET
       AuthorizationType: NONE
       Integration:
@@ -156,3 +58,132 @@ Resources:
         - StatusCode: 200
           ResponseModels:
             application/json: Empty
+
+  workshopApiPermission:
+    DependsOn: workshopMethod
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:invokeFunction
+      FunctionName: !Ref workshopLambda
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${workshopAPI}/*/GET/actor
+
+# --------- LAMBDA ---------
+  workshopLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: NeptuneDataAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - neptune-db:ReadDataViaQuery
+                Resource: !Sub "arn:aws:neptune-db:${AWS::Region}:${AWS::AccountId}:${workshopNeptuneClusterResourceId}/*"
+
+  workshopLambda:
+    Type: AWS::Lambda::Function
+    Metadata:
+      BuildMethod: python3.12
+    Properties:
+      Code: ./lambda
+      Description: API to collect recommendations from Neptune.
+      Environment:
+        Variables:
+          neptunedb: !Ref workshopNeptuneDB
+          neptune_region: !Ref AWS::Region
+      Handler: lambda_function.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt workshopLambdaRole.Arn
+      Runtime: python3.12
+      Timeout: 30
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref workshopSecGroup
+        SubnetIds: !Ref workshopSubnetIDs
+
+  workshopSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Lambda function to reach Neptune.
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: 8182
+          IpProtocol: tcp
+          ToPort: 8182
+      VpcId: !Ref workshopVPC
+
+# --------- S3 + CLOUDFRONT ---------
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${WebsiteBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}
+
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt WebsiteBucket.RegionalDomainName
+            OriginAccessControlId: !Ref CloudFrontOAC
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues:
+            QueryString: false
+
+Outputs:
+  workshopAPI:
+    Value: !Sub "https://${workshopAPI}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  workshopSecGroup:
+    Value: !Ref workshopSecGroup
+  WebsiteBucket:
+    Value: !Ref WebsiteBucket
+  WebsiteURL:
+    Value: !Sub "https://${CloudFrontDistribution.DomainName}"

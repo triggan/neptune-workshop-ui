@@ -1,0 +1,4 @@
+{
+    "_comment": "For local development this points to the SAM local API. The Makefile overwrites this with the API Gateway URL during 'make sync'.",
+    "APIPATH": "http://localhost:3001"
+}

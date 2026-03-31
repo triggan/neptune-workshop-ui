@@ -23,3 +23,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 package-lock.json
+env.json
+website/public/api.json
+.aws-sam/
+samconfig.toml

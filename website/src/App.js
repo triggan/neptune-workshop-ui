@@ -8,9 +8,9 @@ import './App.css';
 
 //------ The following section is used to pull configuration variables from an
 //------ external json file post npm build.
-var currentS3path = window.location.hostname;
+var currentS3path = window.location.host;
 console.log(currentS3path);
-var url = "http://" + currentS3path + "/api.json";
+var url = window.location.protocol + "//" + currentS3path + "/api.json";
 
 var apigateway = "";
 
